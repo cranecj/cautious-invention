@@ -33,10 +33,14 @@ function handleClick(boardIndex, cellIndex) {
     if (superBoard[boardIndex][cellIndex] !== null || smallBoardWins[boardIndex] !== null) return;
 
     makeMove(boardIndex, cellIndex, currentPlayer);
-    if (checkWin(superBoard[boardIndex], currentPlayer)) {
+    const winResult = checkWin(superBoard[boardIndex], currentPlayer);
+    
+    if (winResult) {
         smallBoardWins[boardIndex] = currentPlayer;
         replaceBoardWithEmoji(boardIndex, currentPlayer);
-        if (checkWin(smallBoardWins, currentPlayer)) {
+        
+        const superWinResult = checkWin(smallBoardWins, currentPlayer);
+        if (superWinResult) {
             showResult(`${currentPlayer} wins the game!`);
             return;
         }
@@ -102,13 +106,18 @@ function replaceBoardWithEmoji(boardIndex, player) {
 
 function checkWin(board, player) {
     const winPatterns = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],
-        [0, 4, 8], [2, 4, 6]
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Horizontal
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Vertical
+        [0, 4, 8], [2, 4, 6]             // Diagonal
     ];
-    return winPatterns.some(pattern => 
-        pattern.every(index => board[index] === player)
-    );
+    
+    for (let i = 0; i < winPatterns.length; i++) {
+        const pattern = winPatterns[i];
+        if (pattern.every(index => board[index] === player)) {
+            return { win: true, pattern: pattern, index: i };
+        }
+    }
+    return false;
 }
 
 function isBoardFull(board) {

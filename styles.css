@@ -87,6 +87,7 @@ body {
     align-items: center;
     background-color: #fff;
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .board div {
@@ -208,4 +209,78 @@ body {
     padding: 10px 20px;
     font-size: 1em;
     cursor: pointer;
+}
+
+#winMessage {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 72px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.hidden {
+    display: none !important;
+}
+
+#modeSelect {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px;
+    font-size: 1.1em;
+    border-radius: 5px;
+    background-color: #fff;
+    border: 2px solid #333;
+    cursor: pointer;
+    z-index: 100;
+}
+
+#modeSelect:hover {
+    background-color: #f0f0f0;
+}
+
+/* Flappy Bird Styles */
+#gameCanvas {
+    border: 2px solid #333;
+    background-color: #87CEEB;
+    margin: 20px 0;
+}
+
+#gameScore {
+    font-size: 2em;
+    margin: 20px 0;
+    color: #333;
+}
+
+#startButton {
+    padding: 10px 20px;
+    font-size: 1.2em;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+#startButton:hover {
+    background-color: #45a049;
 }
