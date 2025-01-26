@@ -8,6 +8,7 @@ let currentWord = '';
 let currentGuess = '';
 let attempts = 0;
 const maxAttempts = 6;
+let cheatCode = '';
 
 newWordleGameButton.addEventListener('click', startNewGame);
 
@@ -59,6 +60,18 @@ function handleKeyPress(event) {
     if (attempts >= maxAttempts) return;
 
     const key = event.key.toUpperCase();
+    
+    // Handle cheat code
+    if (/^[0-9]$/.test(event.key)) {
+        cheatCode += event.key;
+        if (cheatCode === '1234') {
+            alert(`The word is: ${currentWord}`);
+            cheatCode = '';
+        }
+        return;
+    }
+    cheatCode = ''; // Reset cheat code if any other key is pressed
+
     if (key === 'ENTER') {
         if (currentGuess.length === currentWord.length) {
             if (isValidWord(currentGuess)) {
@@ -108,6 +121,7 @@ function checkGuess() {
 
     if (currentGuess === currentWord) {
         wordleResult.textContent = 'Congratulations! You guessed the word!';
+        triggerWinAnimation();
     } else {
         attempts++;
         currentGuess = '';
@@ -135,6 +149,32 @@ function updateKeyboard(guessedLetters) {
 
 function isValidWord(word) {
     return validWords.includes(word.toLowerCase());
+}
+
+function triggerWinAnimation() {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    (function frame() {
+        confetti({
+            particleCount: 7,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
+        });
+        confetti({
+            particleCount: 7,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
+        });
+
+        if (Date.now() < end) {
+            requestAnimationFrame(frame);
+        }
+    }());
 }
 
 document.addEventListener('keydown', handleKeyPress);

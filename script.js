@@ -49,6 +49,7 @@ function handleClick(boardIndex, cellIndex) {
     currentPlayer = currentPlayer === humanPlayer ? aiPlayer : humanPlayer;
     nextBoard = smallBoardWins[cellIndex] === null ? cellIndex : -1;
     highlightActiveBoard();
+    updateTurnIndicator();
 
     if (gameMode === 'cpu' && currentPlayer === aiPlayer) {
         setTimeout(() => aiMove(), 500);
@@ -134,11 +135,12 @@ function resetGame() {
     currentPlayer = humanPlayer;
     nextBoard = -1;
     highlightActiveBoard();
+    updateTurnIndicator();
 }
 
 function highlightActiveBoard() {
     boards.forEach((board, index) => {
-        if (nextBoard === -1 || nextBoard === index) {
+        if ((nextBoard === -1 && smallBoardWins[index] === null) || nextBoard === index) {
             board.classList.add('active');
         } else {
             board.classList.remove('active');
@@ -146,5 +148,9 @@ function highlightActiveBoard() {
     });
 }
 
-// Initial highlight
-highlightActiveBoard();
+function updateTurnIndicator() {
+    const turnIndicator = document.getElementById('turnIndicator');
+    turnIndicator.innerHTML = `<span class="player">${currentPlayer}</span>'s Turn`;
+}
+
+updateTurnIndicator();

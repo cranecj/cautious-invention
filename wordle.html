@@ -7,20 +7,28 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="wordleBoard">
-        <!-- Wordle grid will be generated here -->
+    <div id="sidebar">
+        <ul>
+            <li><a href="index.html">Super Tic Tac Toe</a></li>
+            <li><a href="wordle.html">Wordle</a></li>
+        </ul>
     </div>
-    <div id="wordleResult"></div>
-    <button id="newWordleGameButton">New Game</button>
-    
-    <!-- On-screen keyboard -->
-    <div id="keyboard">
-        <!-- Keyboard rows will be generated here -->
+    <div id="content">
+        <div id="wordleBoard">
+            <!-- Wordle grid will be generated here -->
+        </div>
+        <div id="wordleResult"></div>
+        <button id="newWordleGameButton">New Game</button>
+        
+        <!-- On-screen keyboard -->
+        <div id="keyboard">
+            <!-- Keyboard rows will be generated here -->
+        </div>
     </div>
-    
     <!-- Include the word list and target words -->
     <script src="words.js"></script>
     <script src="targetWords.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="wordle.js"></script>
 </body>
 </html>

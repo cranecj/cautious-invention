@@ -7,24 +7,35 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <select id="modeSelect">
-        <option value="human">Human vs Human</option>
-        <option value="cpu">Human vs CPU</option>
-    </select>
-    <div id="superBoard">
-        <!-- 9 small boards -->
-        <div class="board" data-board="0"></div>
-        <div class="board" data-board="1"></div>
-        <div class="board" data-board="2"></div>
-        <div class="board" data-board="3"></div>
-        <div class="board" data-board="4"></div>
-        <div class="board" data-board="5"></div>
-        <div class="board" data-board="6"></div>
-        <div class="board" data-board="7"></div>
-        <div class="board" data-board="8"></div>
+    <div id="sidebar">
+        <ul>
+            <li><a href="index.html">Super Tic Tac Toe</a></li>
+            <li><a href="wordle.html">Wordle</a></li>
+        </ul>
     </div>
-    <div id="result"></div>
-    <button id="newGameButton">New Game</button>
+    <div id="content">
+        <select id="modeSelect">
+            <option value="human">Human vs Human</option>
+            <option value="cpu">Human vs CPU</option>
+        </select>
+        <div id="turnIndicator">
+            <span class="player">⭕</span>'s Turn
+        </div>
+        <div id="superBoard">
+            <!-- 9 small boards -->
+            <div class="board" data-board="0"></div>
+            <div class="board" data-board="1"></div>
+            <div class="board" data-board="2"></div>
+            <div class="board" data-board="3"></div>
+            <div class="board" data-board="4"></div>
+            <div class="board" data-board="5"></div>
+            <div class="board" data-board="6"></div>
+            <div class="board" data-board="7"></div>
+            <div class="board" data-board="8"></div>
+        </div>
+        <div id="result"></div>
+        <button id="newGameButton">New Game</button>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
