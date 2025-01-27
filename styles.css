@@ -262,6 +262,8 @@ body {
     border: 2px solid #333;
     background-color: #87CEEB;
     margin: 20px 0;
+    width: 800px;  /* Match canvas width */
+    height: 600px; /* Match canvas height */
 }
 
 #gameScore {
@@ -283,4 +285,84 @@ body {
 
 #startButton:hover {
     background-color: #45a049;
+}
+
+#highScore {
+    font-size: 2em;
+    margin: 10px 0;
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+@keyframes laserGlow {
+    0% { box-shadow: 0 0 5px #FF0000; }
+    50% { box-shadow: 0 0 20px #FF0000; }
+    100% { box-shadow: 0 0 5px #FF0000; }
+}
+
+.laser {
+    animation: laserGlow 1s infinite;
+}
+
+#difficultyLabel {
+    position: fixed;
+    top: 50%;
+    right: 120px;  /* Moved closer to the selector */
+    transform: translateY(-50%);
+    font-size: 1.1em;
+    color: #333;
+    font-weight: bold;
+    z-index: 1000;
+}
+
+/* Update the existing difficultySelect styles to align with label */
+#difficultySelect {
+    position: fixed;
+    top: 50%;
+    right: 10px;  /* Moved all the way to the right with small margin */
+    transform: translateY(-50%);
+    padding: 10px;
+    font-size: 1.1em;
+    border-radius: 5px;
+    background-color: #fff;
+    border: 2px solid #333;
+    cursor: pointer;
+    z-index: 1000;
+    text-transform: capitalize;
+    transition: all 0.3s ease;
+    width: 100px;
+}
+
+#difficultySelect:hover {
+    background-color: #f0f0f0;
+}
+
+#difficultySelect option[value="demon"],
+#difficultySelect option[value="impossible"] {
+    background-color: #300;
+    color: #FF0000;
+    font-weight: bold;
+}
+
+/* Update the demon-mode class to include impossible */
+#difficultySelect.demon-mode,
+#difficultySelect.impossible-mode {
+    border-color: #FF0000;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+/* Make impossible option flash */
+@keyframes impossibleFlash {
+    0% { color: #FF0000; }
+    50% { color: #FF8800; }
+    100% { color: #FF0000; }
+}
+
+#difficultySelect option[value="impossible"] {
+    animation: impossibleFlash 1s infinite;
 }

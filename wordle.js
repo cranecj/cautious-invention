@@ -64,13 +64,13 @@ function handleKeyPress(event) {
     // Handle cheat code
     if (/^[0-9]$/.test(event.key)) {
         cheatCode += event.key;
-        if (cheatCode === '1234') {
+        if (cheatCode === '69420') {
             alert(`The word is: ${currentWord}`);
             cheatCode = '';
         }
-        return;
+    } else {
+        cheatCode = ''; // Reset cheat code if any other key is pressed
     }
-    cheatCode = ''; // Reset cheat code if any other key is pressed
 
     if (key === 'ENTER') {
         if (currentGuess.length === currentWord.length) {
