@@ -64,7 +64,7 @@ function handleKeyPress(event) {
     // Handle cheat code
     if (/^[0-9]$/.test(event.key)) {
         cheatCode += event.key;
-        if (cheatCode === '69420') {
+        if (cheatCode === '4321') {
             alert(`The word is: ${currentWord}`);
             cheatCode = '';
         }

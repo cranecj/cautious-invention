@@ -16,6 +16,7 @@ let currentSpeed = 1;
 const SPEED_INCREASE = 0.5;  // Changed from 1.5 to 0.5
 const SCORE_THRESHOLD = 20;
 const BASE_SPEED = 1;
+let cheatCode = '';
 
 // Add this with other game variables at the top
 let highScore = localStorage.getItem('flappyHighScore') || 0;
@@ -118,6 +119,23 @@ startButton.addEventListener('click', startGame);
 canvas.addEventListener('click', handleClick);
 document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') handleClick();
+});
+
+document.addEventListener('keydown', (event) => {
+    if (/^[0-9]$/.test(event.key)) {
+        cheatCode += event.key;
+        if (cheatCode === '69') {
+            updateScore(99999999);
+            cheatCode = '';
+        }
+        if (cheatCode === '4321') {
+            localStorage.setItem('flappyHighScore', 0);
+        } else {
+            
+        }
+    } else {
+        cheatCode = '';
+    }
 });
 
 function startGame() {
@@ -558,3 +576,16 @@ function createCat() {
         pawHeight: 5 // Height of paw movement
     };
 } 
+
+function updateScore(newScore) {
+    // Cap the score at 9999
+    score = Math.min(newScore, 9999);
+    scoreElement.textContent = score;
+    
+    if (score > highScore) {
+        // Also cap the high score at 9999
+        highScore = Math.min(score, 9999);
+        localStorage.setItem('flappyHighScore', highScore);
+        highScoreElement.textContent = `High Score: ${highScore}`;
+    }
+}

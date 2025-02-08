@@ -262,8 +262,8 @@ body {
     border: 2px solid #333;
     background-color: #87CEEB;
     margin: 20px 0;
-    width: 800px;  /* Match canvas width */
-    height: 600px; /* Match canvas height */
+    width: 800px;
+    height: 600px;
 }
 
 #gameScore {
@@ -365,4 +365,11 @@ body {
 
 #difficultySelect option[value="impossible"] {
     animation: impossibleFlash 1s infinite;
+}
+
+/* Not So Super SF Styles */
+#height {
+    font-size: 2em;
+    margin: 20px 0;
+    color: #333;
 }
