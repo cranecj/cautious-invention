@@ -21,6 +21,10 @@ let cheatCode = '';
 // Add this with other game variables at the top
 let highScore = localStorage.getItem('flappyHighScore') || 0;
 
+// Add these with other game variables at the top
+let gameOverScreen = false;
+let gameOverMessage = "Game Over - Press Space to Restart";
+
 const bird = {
     x: 50,
     y: canvas.height / 2,
@@ -118,7 +122,15 @@ let catsSpawned = false;
 startButton.addEventListener('click', startGame);
 canvas.addEventListener('click', handleClick);
 document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') handleClick();
+    if (e.code === 'Space') {
+        if (gameOverScreen) {
+            // Reset game state and start new game
+            gameOverScreen = false;
+            startGame();
+        } else if (gameStarted) {
+            handleClick();
+        }
+    }
 });
 
 document.addEventListener('keydown', (event) => {
@@ -153,6 +165,7 @@ function startGame() {
     currentSpeed = BASE_SPEED * DIFFICULTY_SPEEDS[currentDifficulty];
     scoreElement.textContent = score;
     gameStarted = true;
+    gameOverScreen = false;
     fireworks.length = 0;
     
     // Start game loops
@@ -539,12 +552,24 @@ function draw() {
         }
     }
     
+    // Draw game over screen
+    if (gameOverScreen) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.font = '48px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText(gameOverMessage, canvas.width / 2, canvas.height / 2);
+    }
+    
     // Reset alpha for other drawings
     ctx.globalAlpha = 1;
 }
 
 function gameOver() {
     gameStarted = false;
+    gameOverScreen = true;
     createDeathParticles();
     
     // Clear game intervals immediately
@@ -552,12 +577,11 @@ function gameOver() {
     clearInterval(pipeSpawnLoop);
     clearInterval(laserSpawnLoop);
     
-    // Start a new animation loop just for the particles
+    // Start a new animation loop just for the particles and game over screen
     const particleLoop = setInterval(() => {
         if (birdParticles.length === 0) {
             clearInterval(particleLoop);
-            startButton.style.display = 'block';
-            startButton.textContent = 'Play Again';
+            startButton.style.display = 'none'; // Hide the start button
         }
         draw();
     }, 1000/60);

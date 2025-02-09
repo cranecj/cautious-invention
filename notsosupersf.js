@@ -10,6 +10,13 @@ canvas.height = 600;
 // Game variables
 let gameLoop;
 let gameStarted = false;
+const platforms = [];
+let highScore = localStorage.getItem('sfHighScore') || 0;
+let currentHeight = 0;
+const PLATFORM_GAP_Y = 150;
+const PLATFORM_WIDTH = 100;
+const PLATFORM_HEIGHT = 20;
+const BUFFER_ZONE = 200; // Extra space below and above viewport for platforms
 
 const player = {
     x: 50,
@@ -18,97 +25,124 @@ const player = {
     height: 50,
     velocityX: 0,
     velocityY: 0,
-    speed: 5,
+    speed: 7,
     jumpForce: -15,
     gravity: 0.5,
     isJumping: false
 };
 
-const platforms = [];
-const PLATFORM_WIDTH = 100;
-const PLATFORM_HEIGHT = 20;
-const PLATFORM_GAP = 150;
-const MAX_PLATFORM_SPACING = 150;
+// Add high score display
+const highScoreElement = document.createElement('div');
+highScoreElement.id = 'highScore';
+highScoreElement.textContent = `High Score: ${highScore}m`;
+document.querySelector('#content').insertBefore(highScoreElement, canvas);
 
-// Add this variable to track if floor is visible
-let floorVisible = true;
-
-// Add these constants for new platform types
-const PLATFORM_TYPES = {
-    NORMAL: 'normal',
-    BOUNCY: 'bouncy',
-    FALLING: 'falling'
-};
-
-// Add these platform properties
-const BOUNCY_FORCE = -25;
-const FALLING_DELAY = 500; // half second in milliseconds
+// Add this variable for game over message
+let isGameOver = false;
 
 // Generate initial platforms
 function generatePlatforms() {
-    platforms.length = 0;  // Clear existing platforms
+    platforms.length = 0;
     
     // Ground platform
     platforms.push({
         x: 0,
         y: canvas.height - 20,
         width: canvas.width,
-        height: 20,
-        type: PLATFORM_TYPES.NORMAL
+        height: 20
     });
 
     // Generate initial platforms
-    for (let y = canvas.height - PLATFORM_GAP; y > 0; y -= PLATFORM_GAP) {
-        let x = Math.random() * (canvas.width - PLATFORM_WIDTH);
-        
+    for (let y = canvas.height - PLATFORM_GAP_Y; y > -PLATFORM_GAP_Y; y -= PLATFORM_GAP_Y) {
+        let prevX = platforms[platforms.length - 1].x;
+        let x = Math.max(50, Math.min(canvas.width - PLATFORM_WIDTH - 50,
+            prevX + (Math.random() * 200 - 100))); // Max 100px left or right from previous
+
         platforms.push({
             x: x,
             y: y,
             width: PLATFORM_WIDTH,
-            height: PLATFORM_HEIGHT,
-            type: PLATFORM_TYPES.NORMAL,
-            touchTime: 0,
-            falling: false,
-            fallSpeed: 0
+            height: PLATFORM_HEIGHT
         });
     }
+}
+
+// Add this function to generate new platforms above
+function addNewPlatforms() {
+    const highestPlatform = Math.min(...platforms.map(p => p.y));
+    const lowestPlatform = Math.max(...platforms.map(p => p.y));
+    
+    // Add platforms above
+    while (highestPlatform > -BUFFER_ZONE) {
+        let prevX = platforms.find(p => p.y === highestPlatform).x;
+        let x = Math.max(50, Math.min(canvas.width - PLATFORM_WIDTH - 50,
+            prevX + (Math.random() * 200 - 100)));
+
+        platforms.push({
+            x: x,
+            y: highestPlatform - PLATFORM_GAP_Y,
+            width: PLATFORM_WIDTH,
+            height: PLATFORM_HEIGHT
+        });
+    }
+
+    // Remove platforms that are too far below
+    platforms = platforms.filter(platform => 
+        platform.y < canvas.height + BUFFER_ZONE && 
+        platform.y > -BUFFER_ZONE
+    );
 }
 
 function startGame() {
     if (gameStarted) return;
     
-    // Reset game state
+    isGameOver = false;
     player.x = 50;
     player.y = canvas.height - 70;
     player.velocityX = 0;
     player.velocityY = 0;
     player.isJumping = false;
+    currentHeight = 0;
+    heightElement.textContent = '0';
     
-    // Generate platforms
     generatePlatforms();
-    console.log('Platforms generated:', platforms);  // Debug log
-    
     gameStarted = true;
     gameLoop = setInterval(update, 1000/60);
     startButton.style.display = 'none';
 }
 
+// Keyboard input handling
+const keys = {};
+document.addEventListener('keydown', function(e) {
+    e.preventDefault(); // Prevent default browser scrolling
+    keys[e.key] = true;
+    
+    // Handle space restart when game is over
+    if (e.code === 'Space' && isGameOver) {
+        isGameOver = false;
+        startGame();
+    }
+});
+document.addEventListener('keyup', function(e) {
+    e.preventDefault(); // Prevent default browser scrolling
+    keys[e.key] = false;
+});
+
 function handleInput() {
     // WASD controls
-    if ((keys['w'] || keys['W']) && !player.isJumping) {
+    if ((keys['w'] || keys['W'] || keys['ArrowUp']) && !player.isJumping) {
         player.velocityY = player.jumpForce;
         player.isJumping = true;
     }
-    if (keys['a'] || keys['A']) player.velocityX = -player.speed;
-    if (keys['d'] || keys['D']) player.velocityX = player.speed;
-
-    // Arrow key controls
-    if (keys['ArrowUp'] && !player.isJumping) {
-        player.velocityY = player.jumpForce;
-        player.isJumping = true;
+    
+    // Left movement
+    if (keys['a'] || keys['A'] || keys['ArrowLeft']) {
+        player.velocityX = -player.speed;
     }
-    if (keys['ArrowLeft']) player.velocityX = -player.speed;
-    if (keys['ArrowRight']) player.velocityX = player.speed;
+    // Right movement
+    if (keys['d'] || keys['D'] || keys['ArrowRight']) {
+        player.velocityX = player.speed;
+    }
 }
 
 function checkCollision(platform) {
@@ -118,49 +152,11 @@ function checkCollision(platform) {
            player.y < platform.y + platform.height;
 }
 
-// Add this function to generate new platforms above
-function addNewPlatformsAbove() {
-    const highestPlatform = platforms.reduce((highest, platform) => 
-        platform.y < highest ? platform.y : highest, canvas.height);
-        
-    if (highestPlatform > 0) {
-        let currentHeight = highestPlatform - PLATFORM_GAP;
-        let lastX = platforms.find(p => p.y === highestPlatform).x;
-
-        while (currentHeight > -PLATFORM_GAP) {
-            let minX = Math.max(0, lastX - MAX_PLATFORM_SPACING);
-            let maxX = Math.min(canvas.width - PLATFORM_WIDTH, lastX + MAX_PLATFORM_SPACING);
-            let newX = minX + Math.random() * (maxX - minX);
-            
-            let type = PLATFORM_TYPES.NORMAL;
-            const rand = Math.random();
-            if (rand < 0.2) {
-                type = PLATFORM_TYPES.BOUNCY;
-            } else if (rand < 0.4) {
-                type = PLATFORM_TYPES.FALLING;
-            }
-
-            platforms.push({
-                x: newX,
-                y: currentHeight,
-                width: PLATFORM_WIDTH,
-                height: PLATFORM_HEIGHT,
-                type: type,
-                touchTime: 0,
-                falling: false,
-                fallSpeed: 0
-            });
-            
-            lastX = newX;
-            currentHeight -= PLATFORM_GAP;
-        }
-    }
-}
-
 function update() {
     if (!gameStarted) return;
 
     handleInput();
+    
     player.velocityY += player.gravity;
     player.x += player.velocityX;
     player.y += player.velocityY;
@@ -170,65 +166,44 @@ function update() {
     platforms.forEach(platform => {
         if (checkCollision(platform)) {
             if (player.velocityY > 0) {
-                switch(platform.type) {
-                    case PLATFORM_TYPES.BOUNCY:
-                        player.velocityY = BOUNCY_FORCE;
-                        break;
-                    case PLATFORM_TYPES.FALLING:
-                        if (!platform.falling) {
-                            if (platform.touchTime === 0) {
-                                platform.touchTime = Date.now();
-                            } else if (Date.now() - platform.touchTime > FALLING_DELAY) {
-                                platform.falling = true;
-                            }
-                            player.y = platform.y - player.height;
-                            player.velocityY = 0;
-                            player.isJumping = false;
-                        }
-                        break;
-                    default:
-                        player.y = platform.y - player.height;
-                        player.velocityY = 0;
-                        player.isJumping = false;
-                }
+                player.y = platform.y - player.height;
+                player.velocityY = 0;
+                player.isJumping = false;
             }
         }
     });
-
-    // Update falling platforms
-    platforms.forEach(platform => {
-        if (platform.falling) {
-            platform.fallSpeed += player.gravity;
-            platform.y += platform.fallSpeed;
-        }
-    });
-
-    // Remove off-screen platforms
-    platforms = platforms.filter(platform => platform.y < canvas.height + 100);
-
-    // Generate new platforms above as player climbs
-    if (player.y < canvas.height / 2) {
-        addNewPlatformsAbove();
-        // Move everything down
-        const offset = canvas.height / 2 - player.y;
-        player.y += offset;
-        platforms.forEach(platform => platform.y += offset);
-    }
 
     // Screen boundaries
     if (player.x < 0) player.x = 0;
     if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
 
-    // Update height display
-    const height = Math.max(0, Math.floor((canvas.height - player.y) / 10));
-    heightElement.textContent = height;
+    // Camera follow and platform generation
+    if (player.y < canvas.height / 2) {
+        const offset = canvas.height / 2 - player.y;
+        player.y += offset;
+        
+        // Move all platforms down
+        platforms.forEach(platform => {
+            platform.y += offset;
+        });
 
-    // Check if floor is visible
-    const viewportBottom = player.y + canvas.height/2;
-    floorVisible = viewportBottom >= canvas.height - 20;
+        // Generate/remove platforms
+        addNewPlatforms();
+        
+        // Update current height
+        currentHeight += offset / 10;
+        heightElement.textContent = Math.floor(currentHeight);
+        
+        // Update high score
+        if (currentHeight > highScore) {
+            highScore = Math.floor(currentHeight);
+            localStorage.setItem('sfHighScore', highScore);
+            highScoreElement.textContent = `High Score: ${highScore}m`;
+        }
+    }
 
-    // Check lose condition (falling when floor not visible)
-    if (!floorVisible && player.velocityY > 0 && player.y > canvas.height/2) {
+    // Check lose condition (falling off screen)
+    if (player.y > canvas.height + PLATFORM_HEIGHT) {
         gameOver(false);
     }
 
@@ -241,10 +216,9 @@ function draw() {
     ctx.fillStyle = '#87CEEB';  // Sky blue background
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw platforms - add console log to debug
-    console.log('Number of platforms:', platforms.length);
+    // Draw platforms
+    ctx.fillStyle = '#8B4513';  // Brown color for platforms
     platforms.forEach(platform => {
-        ctx.fillStyle = '#8B4513';  // Brown color for platforms
         ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
     });
 
@@ -255,19 +229,22 @@ function draw() {
 
 function gameOver(won) {
     gameStarted = false;
+    isGameOver = true;
     clearInterval(gameLoop);
-    startButton.style.display = 'block';
-    startButton.textContent = won ? 'You Won! Play Again?' : 'Try Again';
+    
+    // Draw game over message
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Game Over', canvas.width/2, canvas.height/2 - 30);
+    
+    ctx.font = '24px Arial';
+    ctx.fillText('Press Space to Restart', canvas.width/2, canvas.height/2 + 20);
+    ctx.fillText(`Height: ${Math.floor(currentHeight)}m`, canvas.width/2, canvas.height/2 + 60);
 }
-
-// Keyboard input handling
-const keys = {};
-document.addEventListener('keydown', (e) => {
-    keys[e.key] = true;
-});
-document.addEventListener('keyup', (e) => {
-    keys[e.key] = false;
-});
 
 startButton.addEventListener('click', startGame);
 
