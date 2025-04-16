@@ -2,12 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" con AA  tent="width=device-width, initial-scale=1.0">
-    <title>Bouncy Square</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Square</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         #catImage { 
- lay: none;
+            lay: none;
+        }
+        #fullscreenButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 1;
+            transition: background-color 0.3s;
+        }
+        #fullscreenButton:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
@@ -17,14 +35,53 @@
             <li><a href="index.html">Super Tic Tac Toe</a></li>
             <li><a href="wordle.html">Wordle</a></li>
             <li><a href="flappy.html">Flappy Square</a></li>
+            <li><a href="fps.html">Aim Practice</a></li>
         </ul>
     </div>
     <div id="content">
+        <button id="fullscreenButton">Fullscreen</button>
         <canvas id="gameCanvas"></canvas>
         <div id="gameScore">Score: <span id="score">0</span></div>
         <button id="startButton">Start Game</button>
     </div>
     <img id="catImage" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAMpSURBVGiB7ZpNaBNBFMd/m2xCTZrYD7GFWpQKYkFE/EBE1IMHQVCkIF4EQQ+CINKTINKDFPUiXgQP4kHw4smDFVE8WAVBrBREEVGpaLWiIdpom49mm8zu82DSpLvJbtxk3yaH/GEhe3gz72Xn/WfezEIMMcQQXXDUqyAJ6PVEG4ZhHAZ2AgPdfr8LvAVGDcN4HPT7/6h3AJKAnVgDYANagJW1BqDu0OsNQEMBqDUADQeg1gDEAYgDEAcgDkAcgDgAcQDiAMQBiAMQByAOQByAOABxAOIAxAGIAxAHIA5AHIA4AHEAGgqAhgJQawDqDr3eAMQBiAMQByAOQByAOABxAOIAxAGIAxAHIA5AHIA4AHEAYgHQNI1EIoGu6/7TqFQKXdf9bV3XSaVS6LpOIpEglUqh6zqGYSz+oGEYgT/AKWAKyHl/U8Ap/3nDMIxkMmkABjBtGIYBGAMDAy6gAQZgpNNpAzCy2awBGLquG4BBNEFRFCKRCMlkElVVyefzZDIZcrmcvyaVSpFMJlEUBVVV0TQNy7LI5/M4joNhGGiahqqqKIpCJBJB0zQsy8J1XWzbxnEcHMfBtm1c18V1XWzbxnEc/7thGP4YlmXhui627eI4DrZtY9suju1iWw627WDbDrbjYtsOjuPgui627eA4Lo7jYtsOjuPiOC627eI4zry+juNg2zaO4+A4DrZt47ouju1iOw627eA4Lo7jYNsOjuPgui627eA4Lo7jYtsOjuNiWQ627eA4Lo7j4jgOtm37/Z2+juNgWQ627eA4Lo7jYlk2juNiWQ627eA4Lq7rYtk2juNiWTaO42JZDo7jYtk2juNiWQ6O42JZDo7jYlkOjuNiWQ6O42LZDo7jYlk2juNiWQ6O42JZDo7jYlkOjuPiui6WZWM7LpblYNsOjuNiWQ6O42JZDo7jzgUAOApcAca9vyv+GKqqGolEwj+JqVTKAIxoNGoARjabNQDD+wkZgNHe3m4ARldXlwEYvb29BmAkk0kDMLq7uw3AGBwcNABjeHjYAIyRkREDMC5evGgAxvXr1w3AuHPnjgEY9+/fNwDj0aNHBmA8e/bMAIwXL14YgPH69WsDMN69e2cAxsTEhAEYX758MQDjx48fBmD8/PnTAIzp6WkDMP78+WMAxuzs7D/6/gWJ8Lr4OOdyZAAAAABJRU5ErkJggg==">
     <script src="flappy.js"></script>
+    <script>
+        const fullscreenButton = document.getElementById('fullscreenButton');
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) { // Safari
+                    document.documentElement.webkitRequestFullscreen();
+                } else if (document.documentElement.msRequestFullscreen) { // IE11
+                    document.documentElement.msRequestFullscreen();
+                }
+                fullscreenButton.textContent = 'Exit Fullscreen';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { // Safari
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE11
+                    document.msExitFullscreen();
+                }
+                fullscreenButton.textContent = 'Fullscreen';
+            }
+        }
+
+        fullscreenButton.addEventListener('click', toggleFullscreen);
+
+        document.addEventListener('fullscreenchange', () => {
+            fullscreenButton.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+        });
+        document.addEventListener('webkitfullscreenchange', () => {
+            fullscreenButton.textContent = document.webkitFullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+        });
+        document.addEventListener('msfullscreenchange', () => {
+            fullscreenButton.textContent = document.msFullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+        });
+    </script>
 </body>
 </html> 

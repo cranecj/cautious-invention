@@ -5,8 +5,8 @@ const timeSelect = document.getElementById('timeSelect');
 const crosshairColor = document.getElementById('crosshairColor');
 
 // Set canvas size
-canvas.width = 800;
-canvas.height = 600;
+canvas.width = 1000;
+canvas.height = 800;
 
 // Game variables
 let gameActive = false;
@@ -22,9 +22,6 @@ const buttonWidth = 200;
 const buttonHeight = 50;
 const buttonX = canvas.width/2 - buttonWidth/2;
 const buttonY = canvas.height/2 + 50;
-
-// Get the fullscreen button element
-const fullscreenButton = document.getElementById('fullscreenButton');
 
 // Target class
 class Target {
@@ -141,8 +138,6 @@ function handleCanvasClick(event) {
 
 // Initialize game
 function initGame() {
-    canvas.width = 800;
-    canvas.height = 600;
     hits = 0;
     misses = 0;
     timeLeft = parseInt(timeSelect.value);
@@ -224,9 +219,9 @@ function endGame() {
     clearInterval(gameInterval);
     clearInterval(timerInterval);
     
-    // Calculate aim percentage
+    // Calculate accuracy
     const totalShots = hits + misses;
-    const aimPercent = totalShots > 0 ? Math.round((hits / totalShots) * 100) : 0;
+    const accuracy = totalShots > 0 ? Math.round((hits / totalShots) * 100) : 0;
     
     // Show stats
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -234,9 +229,10 @@ function endGame() {
     ctx.fillStyle = 'white';
     ctx.font = '48px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(`Game Over!`, canvas.width/2, canvas.height/2 - 30);
+    ctx.fillText(`Game Over!`, canvas.width/2, canvas.height/2 - 60);
     ctx.font = '36px Arial';
-    ctx.fillText(`Aim Percent: ${aimPercent}%`, canvas.width/2, canvas.height/2 + 30);
+    ctx.fillText(`Targets Hit: ${hits}`, canvas.width/2, canvas.height/2);
+    ctx.fillText(`Accuracy: ${accuracy}%`, canvas.width/2, canvas.height/2 + 40);
     drawStartButton();
 }
 
@@ -263,43 +259,4 @@ ctx.textAlign = 'center';
 ctx.fillText('Click Start to Play', canvas.width/2, canvas.height/2 - 30);
 ctx.font = '24px Arial';
 ctx.fillText('Best experience with a mouse', canvas.width/2, canvas.height/2 + 20);
-drawStartButton();
-
-// Function to toggle fullscreen
-function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-        // Enter fullscreen
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen();
-        } else if (document.documentElement.webkitRequestFullscreen) { // Safari
-            document.documentElement.webkitRequestFullscreen();
-        } else if (document.documentElement.msRequestFullscreen) { // IE11
-            document.documentElement.msRequestFullscreen();
-        }
-        fullscreenButton.textContent = 'Exit Fullscreen';
-    } else {
-        // Exit fullscreen
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) { // Safari
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) { // IE11
-            document.msExitFullscreen();
-        }
-        fullscreenButton.textContent = 'Fullscreen';
-    }
-}
-
-// Add event listener for fullscreen button
-fullscreenButton.addEventListener('click', toggleFullscreen);
-
-// Add event listener for fullscreen change
-document.addEventListener('fullscreenchange', () => {
-    fullscreenButton.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
-});
-document.addEventListener('webkitfullscreenchange', () => {
-    fullscreenButton.textContent = document.webkitFullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
-});
-document.addEventListener('msfullscreenchange', () => {
-    fullscreenButton.textContent = document.msFullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
-}); 
+drawStartButton(); 

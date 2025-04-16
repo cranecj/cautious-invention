@@ -61,7 +61,12 @@ function handleKeyPress(event) {
 
     const key = event.key.toUpperCase();
     
-    // Handle cheat code
+    // Handle cheat codes
+    if (key === 'V') {
+        alert(`The word is: ${currentWord}`);
+        return;
+    }
+    
     if (/^[0-9]$/.test(event.key)) {
         cheatCode += event.key;
         if (cheatCode === '4321') {

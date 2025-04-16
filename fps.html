@@ -9,19 +9,19 @@
         #gameCanvas {
             background-color: #333;
             cursor: crosshair;
-            max-width: 100%;
-            height: auto;
+            width: 1000px;
+            height: 800px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         #timer {
             position: absolute;
-            top: 20px;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 32px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            color: black;
+            text-shadow: none;
             font-family: Arial, sans-serif;
             z-index: 1;
         }
@@ -78,24 +78,6 @@
             margin: 10px 0;
             line-height: 1.5;
         }
-        #fullscreenButton {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            z-index: 1;
-            transition: background-color 0.3s;
-        }
-        #fullscreenButton:hover {
-            background-color: #45a049;
-        }
     </style>
 </head>
 <body>
@@ -110,31 +92,36 @@
     <div id="content">
         <canvas id="gameCanvas"></canvas>
         <div id="timer">Time: 30</div>
-        <button id="fullscreenButton">Fullscreen</button>
-        <select id="timeSelect">
-            <option value="10">10 seconds</option>
-            <option value="15">15 seconds</option>
-            <option value="20">20 seconds</option>
-            <option value="30" selected>30 seconds</option>
-            <option value="40">40 seconds</option>
-            <option value="45">45 seconds</option>
-            <option value="50">50 seconds</option>
-            <option value="55">55 seconds</option>
-            <option value="60">1 minute</option>
-        </select>
-        <select id="crosshairColor">
-            <option value="#FF00FF" selected>Hot Pink</option>
-            <option value="#800080">Purple</option>
-            <option value="#0000FF">Blue</option>
-            <option value="#808080">Gray</option>
-            <option value="#FFFFFF">White</option>
-        </select>
+        <div style="display: flex; align-items: center; gap: 10px; margin: 10px;">
+            <span style="color: black; font-size: 16px;">Time:</span>
+            <select id="timeSelect">
+                <option value="10">10 seconds</option>
+                <option value="15">15 seconds</option>
+                <option value="20">20 seconds</option>
+                <option value="30" selected>30 seconds</option>
+                <option value="40">40 seconds</option>
+                <option value="45">45 seconds</option>
+                <option value="50">50 seconds</option>
+                <option value="55">55 seconds</option>
+                <option value="60">1 minute</option>
+            </select>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin: 10px;">
+            <span style="color: black; font-size: 16px;">Crosshair Color:</span>
+            <select id="crosshairColor">
+                <option value="#FF00FF" selected>Hot Pink</option>
+                <option value="#800080">Purple</option>
+                <option value="#0000FF">Blue</option>
+                <option value="#808080">Gray</option>
+                <option value="#FFFFFF">White</option>
+            </select>
+        </div>
         <div id="instructions">
             <h2>How to Play</h2>
             <ul>
                 <li>Click the targets to hit them</li>
                 <li>Each miss reduces your time by 1 second</li>
-                <li>Try to get the highest Aim Percent possible</li>
+                <li>Get the most targets with the highest accuracy</li>
                 <li>Select your preferred time limit before starting</li>
                 <li>Best played with a mouse for precise aiming</li>
             </ul>

@@ -13,7 +13,7 @@ let gameLoop;
 let gameStarted = false;
 let pipeSpawnLoop;
 let currentSpeed = 1;
-const SPEED_INCREASE = 0.5;  // Changed from 1.5 to 0.5
+const SPEED_INCREASE = 0.5;
 const SCORE_THRESHOLD = 20;
 const BASE_SPEED = 1;
 
@@ -25,14 +25,6 @@ let highScore = localStorage.getItem('flappyHighScore') || 0;
 // Add these with other game variables at the top
 let gameOverScreen = false;
 let gameOverMessage = "Game Over - Press Space to Restart";
-
-// Add these with other game variables at the top
-let winScreen = false;
-let winScreenTimer = null;
-let winMessage = "YOU WIN!";
-
-// Add this variable at the top with other game variables
-let fireworkInterval = null;
 
 const bird = {
     x: 50,y: canvas.height / 2,
@@ -122,21 +114,7 @@ startButton.addEventListener('click', startGame);
 canvas.addEventListener('click', handleClick);
 document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
-        if (winScreen) {
-            // Clear all intervals
-            if (winScreenTimer) {
-                clearTimeout(winScreenTimer);
-                winScreenTimer = null;
-            }
-            if (fireworkInterval) {
-                clearInterval(fireworkInterval);
-                fireworkInterval = null;
-            }
-            winScreen = false;
-            winMessage = "YOU WIN!";
-            fireworks.length = 0; // Clear any existing fireworks
-            startGame();
-        } else if (gameOverScreen) {
+        if (gameOverScreen) {
             gameOverScreen = false;
             startGame();
         } else if (gameStarted) {
@@ -170,7 +148,6 @@ function startGame() {
     scoreElement.textContent = score;
     gameStarted = true;
     gameOverScreen = false;
-    fireworks.length = 0;
     
     // Start game loops
     gameLoop = setInterval(update, 1000/60);
@@ -231,22 +208,6 @@ function increaseSpeed() {
 }
 
 function updateScore(newScore) {
-    // Check for win condition first
-    if (newScore >= 9999) {
-        score = 9999;
-        scoreElement.textContent = score;
-        
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('flappyHighScore', highScore);
-            highScoreElement.textContent = `High Score: ${highScore}`;
-        }
-        
-        showWinScreen();
-        return;
-    }
-    
-    // Regular score update
     score = newScore;
     scoreElement.textContent = score;
     
@@ -254,6 +215,11 @@ function updateScore(newScore) {
         highScore = score;
         localStorage.setItem('flappyHighScore', highScore);
         highScoreElement.textContent = `High Score: ${highScore}`;
+    }
+    
+    // Increase speed every SCORE_THRESHOLD points
+    if (score % SCORE_THRESHOLD === 0 && score > 0) {
+        increaseSpeed();
     }
 }
 
@@ -284,59 +250,44 @@ function createFirework() {
 }
 
 function update() {
-    // Update bird
-    bird.velocity += bird.gravity;
+    if (!gameStarted) return;
+
+    // Update bird position
     bird.y += bird.velocity;
-    
-    // Add velocity cap to prevent too fast falling
-    if (bird.velocity > 8) {
-        bird.velocity = 8;
+    bird.velocity += bird.gravity;
+
+    // Check for collision with ground or ceiling
+    if (bird.y <= 0 || bird.y + bird.size >= canvas.height) {
+        gameOver();
+        return;
     }
-    
-    // Check collisions
-    if (bird.y < 0 || bird.y > canvas.height) {
-        if (score < 9999) {  // Only trigger game over if not won
-            gameOver();
-            return;
-        }
-    }
-    
+
     // Update pipes
     for (let i = pipes.length - 1; i >= 0; i--) {
         pipes[i].x -= currentSpeed;
         
-        // Remove off-screen pipes
+        // Check for collision with pipe
+        if (
+            bird.x + bird.size > pipes[i].x &&
+            bird.x < pipes[i].x + pipeWidth &&
+            (bird.y < pipes[i].gapStart || bird.y + bird.size > pipes[i].gapStart + pipeGap)
+        ) {
+            gameOver();
+            return;
+        }
+        
+        // Remove pipes that are off screen
         if (pipes[i].x + pipeWidth < 0) {
             pipes.splice(i, 1);
-            continue;
-        }
-        
-        // Check collision
-        if (checkCollision(pipes[i])) {
-            if (score < 9999) {  // Only trigger game over if not won
-                gameOver();
-                return;
-            }
-        }
-        
-        // Update score and check for speed increase
-        if (!pipes[i].passed && pipes[i].x < bird.x) {
-            pipes[i].passed = true;
-            updateScore(score + 1);
-            
-            // Trigger fireworks at 30 points
-            if (score === FIREWORK_POINTS) {
-                createFirework();
-                createFirework();
-                createFirework();
-            }
-            
-            if (score % SCORE_THRESHOLD === 0) {
-                increaseSpeed();
-            }
+            score++;
         }
     }
-    
+
+    // Add new pipe
+    if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - pipeGap) {
+        spawnPipe();
+    }
+
     // Update coins
     for (let i = coins.length - 1; i >= 0; i--) {
         coins[i].x -= currentSpeed;
@@ -351,10 +302,6 @@ function update() {
         if (!coins[i].collected && checkCoinCollision(coins[i])) {
             coins[i].collected = true;
             updateScore(score + COIN_POINTS);
-            
-            if (score % SCORE_THRESHOLD === 0) {
-                increaseSpeed();
-            }
         }
     }
     
@@ -388,15 +335,6 @@ function update() {
     ctx.globalAlpha = 1;
     
     draw();
-}
-
-function checkCollision(pipe) {
-    if (bird.x + bird.size > pipe.x && bird.x < pipe.x + pipeWidth) {
-        if (bird.y < pipe.gapStart || bird.y + bird.size > pipe.gapStart + pipeGap) {
-            return true;
-        }
-    }
-    return false;
 }
 
 function checkCoinCollision(coin) {
@@ -499,23 +437,6 @@ function draw() {
         }
     }
     
-    // Draw win screen
-    if (winScreen) {
-        // Change to solid black background
-        ctx.fillStyle = '#000000';  // Solid black
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.font = '72px Arial';
-        ctx.fillStyle = '#FFD700'; // Gold color for win message
-        ctx.textAlign = 'center';
-        ctx.fillText("YOU WIN!", canvas.width / 2, canvas.height / 2);
-        
-        // Draw smaller press space message
-        ctx.font = '24px Arial';
-        ctx.fillStyle = '#FFD700';
-        ctx.fillText("Press Space to Restart", canvas.width / 2, canvas.height / 2 + 50);
-    }
-    
     // Draw game over screen
     if (gameOverScreen) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -532,25 +453,12 @@ function draw() {
 }
 
 function gameOver() {
-    // Only show game over screen if we haven't won
-    if (score < 9999) {
-        gameStarted = false;
-        gameOverScreen = true;
-        createDeathParticles();
-        
-        // Clear game intervals immediately
-        clearInterval(gameLoop);
-        clearInterval(pipeSpawnLoop);
-        
-        // Start a new animation loop just for the particles and game over screen
-        const particleLoop = setInterval(() => {
-            if (birdParticles.length === 0) {
-                clearInterval(particleLoop);
-                startButton.style.display = 'none'; // Hide the start button
-            }
-            draw();
-        }, 1000/60);
-    }
+    gameStarted = false;
+    gameOverScreen = true;
+    clearInterval(gameLoop);
+    clearInterval(pipeSpawnLoop);
+    startButton.style.display = 'block';
+    createDeathParticles();
 }
 
 // Initial draw
@@ -565,67 +473,4 @@ function createCat() {
         pawOffset: Math.random() * Math.PI * 2, // Random starting phase for paw movement
         pawHeight: 5 // Height of paw movement
     };
-} 
-
-function showWinScreen() {
-    gameStarted = false;
-    winScreen = true;
-    gameOverScreen = false;
-    let showRestartText = false;
-    
-    // Clear game intervals
-    clearInterval(gameLoop);
-    clearInterval(pipeSpawnLoop);
-    
-    // Create fireworks celebration
-    fireworkInterval = setInterval(() => {
-        createFirework();
-    }, 500);
-    
-    // Show restart text after 1 second
-    setTimeout(() => {
-        showRestartText = true;
-    }, 1000);
-    
-    // Start animation loop for win screen with black background
-    gameLoop = setInterval(() => {
-        // Clear with black background once per frame
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw fireworks
-        for (let i = fireworks.length - 1; i >= 0; i--) {
-            const firework = fireworks[i];
-            firework.age++;
-            
-            for (let j = firework.particles.length - 1; j >= 0; j--) {
-                const particle = firework.particles[j];
-                particle.x += particle.vx;
-                particle.y += particle.vy;
-                particle.vy += 0.1;
-                particle.alpha = Math.max(0, 1 - firework.age / 50);
-                ctx.globalAlpha = particle.alpha;
-                ctx.fillStyle = particle.color;
-                ctx.fillRect(particle.x, particle.y, 2, 2);
-            }
-            
-            if (firework.age > 50) {
-                fireworks.splice(i, 1);
-            }
-        }
-        
-        // Draw main win message
-        ctx.globalAlpha = 1;
-        ctx.font = '72px Arial';
-        ctx.fillStyle = '#FFD700';
-        ctx.textAlign = 'center';
-        ctx.fillText("YOU WIN!", canvas.width / 2, canvas.height / 2);
-        
-        // Draw smaller press space message after 1 second
-        if (showRestartText) {
-            ctx.font = '24px Arial';
-            ctx.fillStyle = '#FFD700';
-            ctx.fillText("Press Space to Restart", canvas.width / 2, canvas.height / 2 + 50);
-        }
-    }, 1000/60);
 }
