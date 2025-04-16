@@ -16,7 +16,8 @@ let currentSpeed = 1;
 const SPEED_INCREASE = 0.5;  // Changed from 1.5 to 0.5
 const SCORE_THRESHOLD = 20;
 const BASE_SPEED = 1;
-let cheatCode = '';
+
+let cheatCode = '1234';
 
 // Add this with other game variables at the top
 let highScore = localStorage.getItem('flappyHighScore') || 0;
@@ -25,9 +26,16 @@ let highScore = localStorage.getItem('flappyHighScore') || 0;
 let gameOverScreen = false;
 let gameOverMessage = "Game Over - Press Space to Restart";
 
+// Add these with other game variables at the top
+let winScreen = false;
+let winScreenTimer = null;
+let winMessage = "YOU WIN!";
+
+// Add this variable at the top with other game variables
+let fireworkInterval = null;
+
 const bird = {
-    x: 50,
-    y: canvas.height / 2,
+    x: 50,y: canvas.height / 2,
     velocity: 0,
     gravity: 0.3,
     jump: -6,
@@ -61,15 +69,6 @@ highScoreElement.textContent = `High Score: ${highScore}`;
 document.querySelector('#content').insertBefore(highScoreElement, canvas);
 
 // Add these with other game variables
-const lasers = [];
-const LASER_SPEED = 3;
-const LASER_HEIGHT = 4;
-const LASER_POINTS_THRESHOLD = 50;
-const LASER_COLOR = '#FF0000';
-
-// Add these with other game variables
-const LASER_INTERVAL = 1000; // 1 second in milliseconds
-let laserSpawnLoop;
 
 // Add these constants near the top with other game variables
 const DIFFICULTY_SPEEDS = {
@@ -123,8 +122,21 @@ startButton.addEventListener('click', startGame);
 canvas.addEventListener('click', handleClick);
 document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
-        if (gameOverScreen) {
-            // Reset game state and start new game
+        if (winScreen) {
+            // Clear all intervals
+            if (winScreenTimer) {
+                clearTimeout(winScreenTimer);
+                winScreenTimer = null;
+            }
+            if (fireworkInterval) {
+                clearInterval(fireworkInterval);
+                fireworkInterval = null;
+            }
+            winScreen = false;
+            winMessage = "YOU WIN!";
+            fireworks.length = 0; // Clear any existing fireworks
+            startGame();
+        } else if (gameOverScreen) {
             gameOverScreen = false;
             startGame();
         } else if (gameStarted) {
@@ -134,19 +146,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('keydown', (event) => {
-    if (/^[0-9]$/.test(event.key)) {
-        cheatCode += event.key;
-        if (cheatCode === '69') {
-            updateScore(99999999);
-            cheatCode = '';
-        }
-        if (cheatCode === '4321') {
-            localStorage.setItem('flappyHighScore', 0);
-        } else {
-            
-        }
-    } else {
-        cheatCode = '';
+    if (event.key.toLowerCase() === 'a') {
+        updateScore(9999);
+    } else if (event.key.toLowerCase() === 'r') {
+        localStorage.setItem('flappyHighScore', 0);
+        highScore = 0;
+        highScoreElement.textContent = `High Score: ${highScore}`;
     }
 });
 
@@ -158,7 +163,6 @@ function startGame() {
     bird.velocity = 0;
     pipes.length = 0;
     coins.length = 0;
-    lasers.length = 0;
     pipeCount = 0;
     score = 0;
     speedLevel = 0;
@@ -171,10 +175,6 @@ function startGame() {
     // Start game loops
     gameLoop = setInterval(update, 1000/60);
     pipeSpawnLoop = setInterval(spawnPipe, pipeSpawnInterval / currentSpeed);
-    
-    if (score >= LASER_POINTS_THRESHOLD) {
-        laserSpawnLoop = setInterval(spawnRandomLaser, LASER_INTERVAL);
-    }
     
     startButton.style.display = 'none';
 }
@@ -231,6 +231,22 @@ function increaseSpeed() {
 }
 
 function updateScore(newScore) {
+    // Check for win condition first
+    if (newScore >= 9999) {
+        score = 9999;
+        scoreElement.textContent = score;
+        
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('flappyHighScore', highScore);
+            highScoreElement.textContent = `High Score: ${highScore}`;
+        }
+        
+        showWinScreen();
+        return;
+    }
+    
+    // Regular score update
     score = newScore;
     scoreElement.textContent = score;
     
@@ -239,18 +255,6 @@ function updateScore(newScore) {
         localStorage.setItem('flappyHighScore', highScore);
         highScoreElement.textContent = `High Score: ${highScore}`;
     }
-}
-
-function spawnRandomLaser() {
-    if (!gameStarted || score < LASER_POINTS_THRESHOLD) return;
-    
-    // Random Y position within canvas bounds
-    const laserY = Math.random() * (canvas.height - LASER_HEIGHT);
-    lasers.push({
-        x: canvas.width,
-        y: laserY,
-        active: true
-    });
 }
 
 function createFirework() {
@@ -291,8 +295,10 @@ function update() {
     
     // Check collisions
     if (bird.y < 0 || bird.y > canvas.height) {
-        gameOver();
-        return;
+        if (score < 9999) {  // Only trigger game over if not won
+            gameOver();
+            return;
+        }
     }
     
     // Update pipes
@@ -307,8 +313,10 @@ function update() {
         
         // Check collision
         if (checkCollision(pipes[i])) {
-            gameOver();
-            return;
+            if (score < 9999) {  // Only trigger game over if not won
+                gameOver();
+                return;
+            }
         }
         
         // Update score and check for speed increase
@@ -347,28 +355,6 @@ function update() {
             if (score % SCORE_THRESHOLD === 0) {
                 increaseSpeed();
             }
-        }
-    }
-    
-    // Check if we need to start laser spawning
-    if (score >= LASER_POINTS_THRESHOLD && !laserSpawnLoop) {
-        laserSpawnLoop = setInterval(spawnRandomLaser, LASER_INTERVAL);
-    }
-    
-    // Update lasers
-    for (let i = lasers.length - 1; i >= 0; i--) {
-        const laser = lasers[i];
-        laser.x -= LASER_SPEED;
-
-        // Check laser collision
-        if (laser.active && checkLaserCollision(laser)) {
-            gameOver();
-            return;
-        }
-
-        // Remove off-screen lasers
-        if (laser.x < 0) {
-            lasers.splice(i, 1);
         }
     }
     
@@ -422,15 +408,6 @@ function checkCoinCollision(coin) {
     );
 }
 
-function checkLaserCollision(laser) {
-    return (
-        bird.x < laser.x + canvas.width &&
-        bird.x + bird.size > laser.x &&
-        bird.y < laser.y + LASER_HEIGHT &&
-        bird.y + bird.size > laser.y
-    );
-}
-
 function createDeathParticles() {
     birdParticles.length = 0;
     // Create a 2x4 grid of particles
@@ -457,75 +434,50 @@ function draw() {
         // Draw bird
         ctx.fillStyle = '#FF69B4';
         ctx.fillRect(bird.x, bird.y, bird.size, bird.size);
+        
+        // Draw coins
+        ctx.fillStyle = '#FFD700';
+        coins.forEach(coin => {
+            if (!coin.collected) {
+                ctx.beginPath();
+                ctx.arc(
+                    coin.x + COIN_SIZE/2,
+                    coin.y + COIN_SIZE/2,
+                    COIN_SIZE/2,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+        });
+        
+        // Draw pipes
+        ctx.fillStyle = '#1E90FF';
+        pipes.forEach(pipe => {
+            ctx.fillRect(pipe.x, 0, pipeWidth, pipe.gapStart);
+            ctx.fillRect(
+                pipe.x,
+                pipe.gapStart + pipeGap,
+                pipeWidth,
+                canvas.height - (pipe.gapStart + pipeGap)
+            );
+        });
     } else if (birdParticles.length > 0) {
         // Draw falling particles
         ctx.fillStyle = '#FF69B4';
-        
-        // Update and draw particles, remove ones that are off screen
         for (let i = birdParticles.length - 1; i >= 0; i--) {
             const particle = birdParticles[i];
-            
-            // Apply gravity and update position
             particle.vy += particle.gravity;
             particle.x += particle.vx;
             particle.y += particle.vy;
-            
-            // Remove if off screen
             if (particle.y > canvas.height) {
                 birdParticles.splice(i, 1);
                 continue;
             }
-            
-            // Draw particle
             ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
         }
     }
     
-    // Draw coins
-    ctx.fillStyle = '#FFD700';  // Gold color
-    coins.forEach(coin => {
-        if (!coin.collected) {
-            ctx.beginPath();
-            ctx.arc(
-                coin.x + COIN_SIZE/2,
-                coin.y + COIN_SIZE/2,
-                COIN_SIZE/2,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
-        }
-    });
-    
-    // Draw pipes with new color
-    ctx.fillStyle = '#1E90FF'; // Changed to dodger blue
-    pipes.forEach(pipe => {
-        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.gapStart);
-        ctx.fillRect(
-            pipe.x,
-            pipe.gapStart + pipeGap,
-            pipeWidth,
-            canvas.height - (pipe.gapStart + pipeGap)
-        );
-    });
-
-    // Draw lasers
-    if (score >= LASER_POINTS_THRESHOLD) {
-        ctx.fillStyle = LASER_COLOR;
-        lasers.forEach(laser => {
-            if (laser.active) {
-                ctx.fillRect(laser.x, laser.y, canvas.width, LASER_HEIGHT);
-                
-                // Add glow effect
-                ctx.save();
-                ctx.shadowColor = LASER_COLOR;
-                ctx.shadowBlur = 10;
-                ctx.fillRect(laser.x, laser.y, canvas.width, LASER_HEIGHT);
-                ctx.restore();
-            }
-        });
-    }
-
     // Draw fireworks
     for (let i = fireworks.length - 1; i >= 0; i--) {
         const firework = fireworks[i];
@@ -533,23 +485,35 @@ function draw() {
         
         for (let j = firework.particles.length - 1; j >= 0; j--) {
             const particle = firework.particles[j];
-            
-            // Update particle
             particle.x += particle.vx;
             particle.y += particle.vy;
-            particle.vy += 0.1; // Gravity
+            particle.vy += 0.1;
             particle.alpha = Math.max(0, 1 - firework.age / 50);
-            
-            // Draw particle
             ctx.globalAlpha = particle.alpha;
             ctx.fillStyle = particle.color;
             ctx.fillRect(particle.x, particle.y, 2, 2);
         }
         
-        // Remove old fireworks
         if (firework.age > 50) {
             fireworks.splice(i, 1);
         }
+    }
+    
+    // Draw win screen
+    if (winScreen) {
+        // Change to solid black background
+        ctx.fillStyle = '#000000';  // Solid black
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.font = '72px Arial';
+        ctx.fillStyle = '#FFD700'; // Gold color for win message
+        ctx.textAlign = 'center';
+        ctx.fillText("YOU WIN!", canvas.width / 2, canvas.height / 2);
+        
+        // Draw smaller press space message
+        ctx.font = '24px Arial';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText("Press Space to Restart", canvas.width / 2, canvas.height / 2 + 50);
     }
     
     // Draw game over screen
@@ -568,23 +532,25 @@ function draw() {
 }
 
 function gameOver() {
-    gameStarted = false;
-    gameOverScreen = true;
-    createDeathParticles();
-    
-    // Clear game intervals immediately
-    clearInterval(gameLoop);
-    clearInterval(pipeSpawnLoop);
-    clearInterval(laserSpawnLoop);
-    
-    // Start a new animation loop just for the particles and game over screen
-    const particleLoop = setInterval(() => {
-        if (birdParticles.length === 0) {
-            clearInterval(particleLoop);
-            startButton.style.display = 'none'; // Hide the start button
-        }
-        draw();
-    }, 1000/60);
+    // Only show game over screen if we haven't won
+    if (score < 9999) {
+        gameStarted = false;
+        gameOverScreen = true;
+        createDeathParticles();
+        
+        // Clear game intervals immediately
+        clearInterval(gameLoop);
+        clearInterval(pipeSpawnLoop);
+        
+        // Start a new animation loop just for the particles and game over screen
+        const particleLoop = setInterval(() => {
+            if (birdParticles.length === 0) {
+                clearInterval(particleLoop);
+                startButton.style.display = 'none'; // Hide the start button
+            }
+            draw();
+        }, 1000/60);
+    }
 }
 
 // Initial draw
@@ -601,15 +567,65 @@ function createCat() {
     };
 } 
 
-function updateScore(newScore) {
-    // Cap the score at 9999
-    score = Math.min(newScore, 9999);
-    scoreElement.textContent = score;
+function showWinScreen() {
+    gameStarted = false;
+    winScreen = true;
+    gameOverScreen = false;
+    let showRestartText = false;
     
-    if (score > highScore) {
-        // Also cap the high score at 9999
-        highScore = Math.min(score, 9999);
-        localStorage.setItem('flappyHighScore', highScore);
-        highScoreElement.textContent = `High Score: ${highScore}`;
-    }
+    // Clear game intervals
+    clearInterval(gameLoop);
+    clearInterval(pipeSpawnLoop);
+    
+    // Create fireworks celebration
+    fireworkInterval = setInterval(() => {
+        createFirework();
+    }, 500);
+    
+    // Show restart text after 1 second
+    setTimeout(() => {
+        showRestartText = true;
+    }, 1000);
+    
+    // Start animation loop for win screen with black background
+    gameLoop = setInterval(() => {
+        // Clear with black background once per frame
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw fireworks
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+            const firework = fireworks[i];
+            firework.age++;
+            
+            for (let j = firework.particles.length - 1; j >= 0; j--) {
+                const particle = firework.particles[j];
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.vy += 0.1;
+                particle.alpha = Math.max(0, 1 - firework.age / 50);
+                ctx.globalAlpha = particle.alpha;
+                ctx.fillStyle = particle.color;
+                ctx.fillRect(particle.x, particle.y, 2, 2);
+            }
+            
+            if (firework.age > 50) {
+                fireworks.splice(i, 1);
+            }
+        }
+        
+        // Draw main win message
+        ctx.globalAlpha = 1;
+        ctx.font = '72px Arial';
+        ctx.fillStyle = '#FFD700';
+        ctx.textAlign = 'center';
+        ctx.fillText("YOU WIN!", canvas.width / 2, canvas.height / 2);
+        
+        // Draw smaller press space message after 1 second
+        if (showRestartText) {
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText("Press Space to Restart", canvas.width / 2, canvas.height / 2 + 50);
+        }
+    }, 1000/60);
 }
