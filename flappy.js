@@ -110,6 +110,9 @@ const FIREWORK_COLORS = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', 
 // Add this variable with other game variables
 let catsSpawned = false;
 
+// Add this variable with other game variables at the top
+let cheatCodeUsed = false;
+
 startButton.addEventListener('click', startGame);
 canvas.addEventListener('click', handleClick);
 document.addEventListener('keydown', (e) => {
@@ -125,6 +128,7 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('keydown', (event) => {
     if (event.key.toLowerCase() === 'a') {
+        cheatCodeUsed = true;
         updateScore(9999);
     } else if (event.key.toLowerCase() === 'r') {
         localStorage.setItem('flappyHighScore', 0);
@@ -148,6 +152,7 @@ function startGame() {
     scoreElement.textContent = score;
     gameStarted = true;
     gameOverScreen = false;
+    cheatCodeUsed = false; // Reset cheat code flag
     
     // Start game loops
     gameLoop = setInterval(update, 1000/60);
@@ -220,6 +225,11 @@ function updateScore(newScore) {
     // Increase speed every SCORE_THRESHOLD points
     if (score % SCORE_THRESHOLD === 0 && score > 0) {
         increaseSpeed();
+    }
+
+    // Die if score reaches 9999 normally (not from cheat code)
+    if (score === 9999 && !cheatCodeUsed) {
+        gameOver();
     }
 }
 
@@ -445,7 +455,13 @@ function draw() {
         ctx.font = '48px Arial';
         ctx.fillStyle = 'white';
         ctx.textAlign = 'center';
-        ctx.fillText(gameOverMessage, canvas.width / 2, canvas.height / 2);
+        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 50);
+        
+        ctx.font = '36px Arial';
+        ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2);
+        
+        ctx.font = '24px Arial';
+        ctx.fillText('Press Space to Restart', canvas.width / 2, canvas.height / 2 + 50);
     }
     
     // Reset alpha for other drawings
@@ -457,8 +473,24 @@ function gameOver() {
     gameOverScreen = true;
     clearInterval(gameLoop);
     clearInterval(pipeSpawnLoop);
-    startButton.style.display = 'block';
+    
+    // Create death particles
     createDeathParticles();
+    
+    // Show game over message with score
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.font = '48px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 50);
+    
+    ctx.font = '36px Arial';
+    ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2);
+    
+    ctx.font = '24px Arial';
+    ctx.fillText('Press Space to Restart', canvas.width / 2, canvas.height / 2 + 50);
 }
 
 // Initial draw
