@@ -50,7 +50,6 @@ const bird = {
 
 const pipes = [];
 const pipeWidth = 50;
-const pipeGap = 200;
 const pipeSpawnInterval = 2000;
 
 // Add this after the game variables
@@ -68,23 +67,83 @@ const COIN_POINTS = 5;
 // Add this variable with other game variables
 let speedLevel = 0;
 
-// Add these constants near the top with other game variables
-const DIFFICULTY_SPEEDS = {
-    'easy': 1,
-    'medium': 2,
-    'hard': 3,
-    'demon': 6,
-    'impossible': 11
+// Enhanced difficulty system with speed and pipe gap settings
+const DIFFICULTY_SETTINGS = {
+    'easy': {
+        speed: 1,
+        pipeGap: 250,      // Very generous gap
+        description: 'Relaxed gameplay'
+    },
+    'medium': {
+        speed: 2,
+        pipeGap: 220,      // Slightly smaller gap
+        description: 'Balanced challenge'
+    },
+    'hard': {
+        speed: 3,
+        pipeGap: 180,      // Tighter gap
+        description: 'Precise flying required'
+    },
+    'demon': {
+        speed: 6,
+        pipeGap: 150,      // Much tighter gap + high speed
+        description: 'Expert level challenge'
+    },
+    'impossible': {
+        speed: 11,
+        pipeGap: 120,      // Minimum safe gap + maximum speed
+        description: 'Only for the brave'
+    }
 };
 let currentDifficulty = 'easy';
+
+// Dynamic pipe gap based on difficulty
+let currentPipeGap = DIFFICULTY_SETTINGS[currentDifficulty].pipeGap;
+
+// Validate difficulty settings to ensure game is always winnable
+function validateDifficultySettings() {
+    console.log('Validating difficulty settings for winnability...');
+    
+    Object.entries(DIFFICULTY_SETTINGS).forEach(([difficulty, settings]) => {
+        const birdSize = bird.size;
+        const jumpPower = Math.abs(bird.jump);
+        const gravity = bird.gravity;
+        
+        // Calculate minimum gap needed for bird to pass through
+        const minTheoreticalGap = birdSize + 10; // 10px safety margin
+        
+        // Calculate maximum vertical distance bird can travel in one frame cycle
+        const maxVerticalDistance = jumpPower + gravity * 10; // Worst case scenario
+        
+        // Minimum safe gap considering bird movement
+        const minSafeGap = Math.max(minTheoreticalGap, birdSize * 2.5);
+        
+        const isWinnable = settings.pipeGap >= minSafeGap;
+        
+        console.log(`${difficulty.toUpperCase()}:`, {
+            pipeGap: settings.pipeGap,
+            minSafeGap: Math.round(minSafeGap),
+            winnable: isWinnable ? '✅' : '❌',
+            margin: Math.round(settings.pipeGap - minSafeGap)
+        });
+        
+        if (!isWinnable) {
+            console.warn(`⚠️ ${difficulty} difficulty may be too challenging!`);
+        }
+    });
+}
+
+// Run validation
+validateDifficultySettings();
 
 // Add this after the scoreElement constant at the top
 const difficultySelect = document.createElement('select');
 difficultySelect.id = 'difficultySelect';
-['easy', 'medium', 'hard', 'demon', 'impossible'].forEach(difficulty => {
+Object.keys(DIFFICULTY_SETTINGS).forEach(difficulty => {
     const option = document.createElement('option');
     option.value = difficulty;
-    option.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+    const settings = DIFFICULTY_SETTINGS[difficulty];
+    option.textContent = `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} - Gap: ${settings.pipeGap}px`;
     if (difficulty === 'demon' || difficulty === 'impossible') {
         option.style.color = '#FF0000';
     }
@@ -104,9 +163,11 @@ if (contentElement && canvas) {
 
 difficultySelect.addEventListener('change', (e) => {
     currentDifficulty = e.target.value;
+    currentPipeGap = DIFFICULTY_SETTINGS[currentDifficulty].pipeGap;
+    
     if (gameStarted) {
-        // Update current game speed if game is in progress
-        currentSpeed = BASE_SPEED * DIFFICULTY_SPEEDS[currentDifficulty] + (SPEED_INCREASE * speedLevel);
+        // Update current game speed and pipe gap if game is in progress
+        currentSpeed = BASE_SPEED * DIFFICULTY_SETTINGS[currentDifficulty].speed + (SPEED_INCREASE * speedLevel);
         clearInterval(pipeSpawnLoop);
         pipeSpawnLoop = setInterval(spawnPipe, pipeSpawnInterval / currentSpeed);
     }
@@ -143,6 +204,17 @@ document.addEventListener('keydown', (e) => {
         localStorage.setItem('flappyHighScore', 0);
         highScore = 0;
         highScoreElement.textContent = `High Score: ${highScore}`;
+    } else if (e.key.toLowerCase() === 't' && gameStarted) {
+        // Test mode: cycle through difficulties
+        const difficulties = Object.keys(DIFFICULTY_SETTINGS);
+        const currentIndex = difficulties.indexOf(currentDifficulty);
+        const nextIndex = (currentIndex + 1) % difficulties.length;
+        const nextDifficulty = difficulties[nextIndex];
+        
+        difficultySelect.value = nextDifficulty;
+        difficultySelect.dispatchEvent(new Event('change'));
+        
+        console.log(`Switched to ${nextDifficulty.toUpperCase()} difficulty for testing`);
     }
 });
 
@@ -159,7 +231,8 @@ function startGame() {
     pipeCount = 0;
     score = 0;
     speedLevel = 0;
-    currentSpeed = BASE_SPEED * DIFFICULTY_SPEEDS[currentDifficulty];
+    currentSpeed = BASE_SPEED * DIFFICULTY_SETTINGS[currentDifficulty].speed;
+    currentPipeGap = DIFFICULTY_SETTINGS[currentDifficulty].pipeGap;
     scoreElement.textContent = score;
     gameStarted = true;
     gameOverScreen = false;
@@ -183,9 +256,9 @@ function spawnPipe() {
     
     pipeCount++;
     
-    // Ensure gap is always within playable bounds
-    const minGapStart = 100;
-    const maxGapStart = canvas.height - pipeGap - 100;
+    // Ensure gap is always within playable bounds with dynamic gap size
+    const minGapStart = 50;  // Reduced margin for harder difficulties
+    const maxGapStart = canvas.height - currentPipeGap - 50;
     
     const gapStart = Math.max(minGapStart, 
         Math.min(maxGapStart, 
@@ -193,16 +266,18 @@ function spawnPipe() {
         )
     );
     
-    // Verify gap size
+    // Verify gap size with dynamic gap
     const topPipeHeight = gapStart;
-    const bottomPipeStart = gapStart + pipeGap;
+    const bottomPipeStart = gapStart + currentPipeGap;
     const bottomPipeHeight = canvas.height - bottomPipeStart;
     
-    // Only spawn pipe if gap is valid
-    if (topPipeHeight >= 0 && bottomPipeHeight >= 0 && pipeGap >= bird.size * 2) {
+    // Ensure minimum safe gap (bird size * 3 for safety margin)
+    const minSafeGap = bird.size * 3;
+    if (topPipeHeight >= 0 && bottomPipeHeight >= 0 && currentPipeGap >= minSafeGap) {
         pipes.push({
             x: canvas.width,
             gapStart: gapStart,
+            gapSize: currentPipeGap,  // Store current gap size for this pipe
             passed: false
         });
         
@@ -210,7 +285,7 @@ function spawnPipe() {
         if (pipeCount % 5 === 0) {
             coins.push({
                 x: canvas.width,
-                y: gapStart + (pipeGap / 2) - (COIN_SIZE / 2),
+                y: gapStart + (currentPipeGap / 2) - (COIN_SIZE / 2),
                 collected: false
             });
         }
@@ -219,7 +294,7 @@ function spawnPipe() {
 
 function increaseSpeed() {
     speedLevel++;
-    currentSpeed = (BASE_SPEED * DIFFICULTY_SPEEDS[currentDifficulty]) + (SPEED_INCREASE * speedLevel);
+    currentSpeed = (BASE_SPEED * DIFFICULTY_SETTINGS[currentDifficulty].speed) + (SPEED_INCREASE * speedLevel);
     clearInterval(pipeSpawnLoop);
     pipeSpawnLoop = setInterval(spawnPipe, pipeSpawnInterval / currentSpeed);
 }
@@ -305,11 +380,11 @@ function update() {
     for (let i = pipes.length - 1; i >= 0; i--) {
         pipes[i].x -= currentSpeed;
         
-        // Check for collision with pipe
+        // Check for collision with pipe using individual pipe's gap size
         if (
             bird.x + bird.size > pipes[i].x &&
             bird.x < pipes[i].x + pipeWidth &&
-            (bird.y < pipes[i].gapStart || bird.y + bird.size > pipes[i].gapStart + pipeGap)
+            (bird.y < pipes[i].gapStart || bird.y + bird.size > pipes[i].gapStart + pipes[i].gapSize)
         ) {
             gameOver();
             return;
@@ -417,15 +492,23 @@ function draw() {
             }
         });
         
-        // Draw pipes
-        ctx.fillStyle = '#1E90FF';
+        // Draw pipes using individual pipe gap sizes with difficulty-based colors
+        const pipeColors = {
+            'easy': '#4CAF50',      // Green - safe and easy
+            'medium': '#2196F3',    // Blue - standard
+            'hard': '#FF9800',      // Orange - warning
+            'demon': '#F44336',     // Red - danger
+            'impossible': '#9C27B0' // Purple - extreme
+        };
+        ctx.fillStyle = pipeColors[currentDifficulty] || '#1E90FF';
+        
         pipes.forEach(pipe => {
             ctx.fillRect(pipe.x, 0, pipeWidth, pipe.gapStart);
             ctx.fillRect(
                 pipe.x,
-                pipe.gapStart + pipeGap,
+                pipe.gapStart + pipe.gapSize,
                 pipeWidth,
-                canvas.height - (pipe.gapStart + pipeGap)
+                canvas.height - (pipe.gapStart + pipe.gapSize)
             );
         });
     } else if (birdParticles.length > 0) {
@@ -465,6 +548,19 @@ function draw() {
         }
     }
     
+    // Draw difficulty indicator during gameplay
+    if (gameStarted && !isPaused) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(10, 10, 200, 60);
+        
+        ctx.fillStyle = 'white';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Difficulty: ${currentDifficulty.toUpperCase()}`, 20, 30);
+        ctx.fillText(`Gap Size: ${currentPipeGap}px`, 20, 50);
+        ctx.fillText(`Speed: ${currentSpeed.toFixed(1)}x`, 20, 70);
+    }
+    
     // Draw pause screen
     if (isPaused && gameStarted) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -477,6 +573,9 @@ function draw() {
         
         ctx.font = '24px Arial';
         ctx.fillText('Press P to Resume', canvas.width / 2, canvas.height / 2 + 50);
+        
+        ctx.font = '18px Arial';
+        ctx.fillText(`Current: ${currentDifficulty.toUpperCase()} - Gap: ${currentPipeGap}px`, canvas.width / 2, canvas.height / 2 + 100);
     }
     
     // Draw game over screen
@@ -487,12 +586,16 @@ function draw() {
         ctx.fillStyle = 'white';
         ctx.font = '48px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 100);
+        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 120);
         
         ctx.font = '24px Arial';
-        ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 - 30);
-        ctx.fillText(`High Score: ${highScore}`, canvas.width / 2, canvas.height / 2 + 10);
-        ctx.fillText('Press Space to Restart', canvas.width / 2, canvas.height / 2 + 50);
+        ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 - 60);
+        ctx.fillText(`High Score: ${highScore}`, canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillText(`Difficulty: ${currentDifficulty.toUpperCase()} (Gap: ${currentPipeGap}px)`, canvas.width / 2, canvas.height / 2);
+        ctx.fillText('Press Space to Restart', canvas.width / 2, canvas.height / 2 + 40);
+        
+        ctx.font = '16px Arial';
+        ctx.fillText('Controls: SPACE=Jump, P=Pause, T=Test Difficulties', canvas.width / 2, canvas.height / 2 + 80);
     }
     
     // Reset alpha for other drawings
