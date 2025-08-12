@@ -13,6 +13,8 @@ let gameLoop;
 let gameStarted = false;
 let pipeSpawnLoop;
 let currentSpeed = 1;
+let lastTime = 0;
+let isPaused = false;
 const SPEED_INCREASE = 0.5;
 const SCORE_THRESHOLD = 20;
 const BASE_SPEED = 1;
@@ -22,12 +24,24 @@ let cheatCode = '1234';
 // Add this with other game variables at the top
 let highScore = localStorage.getItem('flappyHighScore') || 0;
 
+// Create high score display element
+const highScoreElement = document.createElement('div');
+highScoreElement.id = 'highScore';
+highScoreElement.textContent = `High Score: ${highScore}`;
+const contentElement = document.querySelector('#content');
+if (contentElement) {
+    contentElement.appendChild(highScoreElement);
+} else {
+    console.error('Content element not found');
+}
+
 // Add these with other game variables at the top
 let gameOverScreen = false;
 let gameOverMessage = "Game Over - Press Space to Restart";
 
 const bird = {
-    x: 50,y: canvas.height / 2,
+    x: 50,
+    y: canvas.height / 2,
     velocity: 0,
     gravity: 0.3,
     jump: -6,
@@ -76,13 +90,17 @@ difficultySelect.id = 'difficultySelect';
     }
     difficultySelect.appendChild(option);
 });
-document.querySelector('#content').insertBefore(difficultySelect, canvas);
-
-// Add this after creating the difficultySelect element
-const difficultyLabel = document.createElement('div');
-difficultyLabel.id = 'difficultyLabel';
-difficultyLabel.textContent = 'Level:';
-document.querySelector('#content').insertBefore(difficultyLabel, difficultySelect);
+if (contentElement && canvas) {
+    contentElement.insertBefore(difficultySelect, canvas);
+    
+    // Add this after creating the difficultySelect element
+    const difficultyLabel = document.createElement('div');
+    difficultyLabel.id = 'difficultyLabel';
+    difficultyLabel.textContent = 'Level:';
+    contentElement.insertBefore(difficultyLabel, difficultySelect);
+} else {
+    console.error('Required elements not found for difficulty selector');
+}
 
 difficultySelect.addEventListener('change', (e) => {
     currentDifficulty = e.target.value;
@@ -99,13 +117,13 @@ const fireworks = [];
 const FIREWORK_POINTS = 30;
 const FIREWORK_COLORS = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
 
-// Add this variable with other game variables
-let catsSpawned = false;
+// Removed unused catsSpawned variable
 
 startButton.addEventListener('click', startGame);
 canvas.addEventListener('click', handleClick);
 document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
+        e.preventDefault(); // Prevent page scroll
         if (gameOverScreen) {
             gameOverScreen = false;
             startGame();
@@ -113,12 +131,15 @@ document.addEventListener('keydown', (e) => {
             handleClick();
         }
     }
-});
-
-document.addEventListener('keydown', (event) => {
-    if (event.key.toLowerCase() === 'a') {
+    
+    if (e.code === 'KeyP' && gameStarted) {
+        togglePause();
+    }
+    
+    // Cheat codes
+    if (e.key.toLowerCase() === 'a') {
         updateScore(9999);
-    } else if (event.key.toLowerCase() === 'r') {
+    } else if (e.key.toLowerCase() === 'r') {
         localStorage.setItem('flappyHighScore', 0);
         highScore = 0;
         highScoreElement.textContent = `High Score: ${highScore}`;
@@ -133,6 +154,8 @@ function startGame() {
     bird.velocity = 0;
     pipes.length = 0;
     coins.length = 0;
+    fireworks.length = 0;
+    birdParticles.length = 0;
     pipeCount = 0;
     score = 0;
     speedLevel = 0;
@@ -140,9 +163,11 @@ function startGame() {
     scoreElement.textContent = score;
     gameStarted = true;
     gameOverScreen = false;
+    isPaused = false;
     
     // Start game loops
-    gameLoop = setInterval(update, 1000/60);
+    lastTime = performance.now();
+    gameLoop = requestAnimationFrame(gameLoopFrame);
     pipeSpawnLoop = setInterval(spawnPipe, pipeSpawnInterval / currentSpeed);
     
     startButton.style.display = 'none';
@@ -206,6 +231,7 @@ function updateScore(newScore) {
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('flappyHighScore', highScore);
+        highScoreElement.textContent = `High Score: ${highScore}`;
     }
     
     // Increase speed every SCORE_THRESHOLD points
@@ -238,6 +264,28 @@ function createFirework() {
         particles: particles,
         age: 0
     });
+}
+
+function togglePause() {
+    isPaused = !isPaused;
+    if (isPaused) {
+        clearInterval(pipeSpawnLoop);
+    } else {
+        pipeSpawnLoop = setInterval(spawnPipe, pipeSpawnInterval / currentSpeed);
+    }
+}
+
+function gameLoopFrame(currentTime) {
+    if (gameStarted) {
+        if (!isPaused) {
+            const deltaTime = currentTime - lastTime;
+            if (deltaTime >= 16.67) { // ~60 FPS
+                update();
+                lastTime = currentTime;
+            }
+        }
+        gameLoop = requestAnimationFrame(gameLoopFrame);
+    }
 }
 
 function update() {
@@ -274,10 +322,7 @@ function update() {
         }
     }
 
-    // Add new pipe
-    if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - pipeGap) {
-        spawnPipe();
-    }
+    // Pipe spawning is handled by timer interval, no need for frame-based spawning
 
     // Update coins
     for (let i = coins.length - 1; i >= 0; i--) {
@@ -296,7 +341,7 @@ function update() {
         }
     }
     
-    // Update fireworks
+    // Update fireworks (just update positions, don't draw here)
     for (let i = fireworks.length - 1; i >= 0; i--) {
         const firework = fireworks[i];
         firework.age++;
@@ -304,16 +349,11 @@ function update() {
         for (let j = firework.particles.length - 1; j >= 0; j--) {
             const particle = firework.particles[j];
             
-            // Update particle
+            // Update particle position only
             particle.x += particle.vx;
             particle.y += particle.vy;
             particle.vy += 0.1; // Gravity
             particle.alpha = Math.max(0, 1 - firework.age / 50);
-            
-            // Draw particle
-            ctx.globalAlpha = particle.alpha;
-            ctx.fillStyle = particle.color;
-            ctx.fillRect(particle.x, particle.y, 2, 2);
         }
         
         // Remove old fireworks
@@ -321,9 +361,6 @@ function update() {
             fireworks.splice(i, 1);
         }
     }
-    
-    // Reset alpha for other drawings
-    ctx.globalAlpha = 1;
     
     draw();
 }
@@ -428,6 +465,20 @@ function draw() {
         }
     }
     
+    // Draw pause screen
+    if (isPaused && gameStarted) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = 'white';
+        ctx.font = '48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+        
+        ctx.font = '24px Arial';
+        ctx.fillText('Press P to Resume', canvas.width / 2, canvas.height / 2 + 50);
+    }
+    
     // Draw game over screen
     if (gameOverScreen) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -451,7 +502,7 @@ function draw() {
 function gameOver() {
     gameStarted = false;
     gameOverScreen = true;
-    clearInterval(gameLoop);
+    cancelAnimationFrame(gameLoop);
     clearInterval(pipeSpawnLoop);
     
     // Draw game over screen
@@ -475,13 +526,4 @@ function gameOver() {
 // Initial draw
 draw();
 
-function createCat() {
-    return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: 30 + Math.random() * 20,
-        speed: 0.2 + Math.random() * 0.3,
-        pawOffset: Math.random() * Math.PI * 2, // Random starting phase for paw movement
-        pawHeight: 5 // Height of paw movement
-    };
-}
+// Removed unused createCat function
